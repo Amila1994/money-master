@@ -19,6 +19,11 @@ jobs:
     - name: Extract Project ZIP
       run: unzip money-master.zip
 
+    - name: Download Missing Gradle Jar
+      run: |
+        mkdir -p money-master/gradle/wrapper
+        wget -O money-master/gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.5.0/gradle/wrapper/gradle-wrapper.jar
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
       working-directory: money-master
