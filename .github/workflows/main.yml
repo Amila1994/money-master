@@ -19,13 +19,18 @@ jobs:
     - name: Extract Project ZIP
       run: unzip money-master.zip
 
+    - name: Download Missing Gradle Jar and Set Properties
+      run: |
+        mkdir -p money-master/gradle/wrapper
+        wget -O money-master/gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v9.3.1/gradle/wrapper/gradle-wrapper.jar
+        echo "distributionBase=GRADLE_USER_HOME" > money-master/gradle/wrapper/gradle-wrapper.properties
+        echo "distributionPath=wrapper/dists" >> money-master/gradle/wrapper/gradle-wrapper.properties
+        echo "distributionUrl=https\://services.gradle.org/distributions/gradle-9.3.1-bin.zip" >> money-master/gradle/wrapper/gradle-wrapper.properties
+        echo "zipStoreBase=GRADLE_USER_HOME" >> money-master/gradle/wrapper/gradle-wrapper.properties
+        echo "zipStorePath=wrapper/dists" >> money-master/gradle/wrapper/gradle-wrapper.properties
+
     - name: Grant execute permission for gradlew
       run: chmod +x money-master/gradlew
-
-    - name: Setup Gradle Version 9.3.1
-      run: |
-        cd money-master
-        ./gradlew wrapper --gradle-version 9.3.1
 
     - name: Build with Gradle
       run: ./gradlew assembleDebug
