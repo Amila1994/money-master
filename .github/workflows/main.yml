@@ -26,6 +26,9 @@ jobs:
           exit 1
         fi
 
+    - name: Generate Missing Gradle Wrapper
+      run: gradle wrapper
+
     - name: Change output file permissions
       run: chmod +x gradlew
 
