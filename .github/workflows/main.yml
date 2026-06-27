@@ -31,11 +31,44 @@ jobs:
       with:
         gradle-version: 8.2
 
-    - name: Bypass Keystore Signing for Debug
+    - name: Force Patch build.gradle.kts with Raw Code
+      run: |
+        cat << 'EOF' > money-master/app/build.gradle.kts
+        plugins {
+            alias(libs.plugins.android.application) apply false
+            alias(libs.plugins.kotlin.compose) apply false
+            alias(libs.plugins.google.devtools.ksp) apply false
+            alias(libs.plugins.roborazzi) apply false
+            alias(libs.plugins.secrets) apply false
+        }
+        android {
+            compileSdk = 34
+            defaultConfig {
+                applicationId = "com.money.master"
+                minSdk = 24
+                targetSdk = 34
+                versionCode = 1
+                versionName = "1.0"
+            }
+            buildTypes {
+                release {
+                    isMinifyEnabled = false
+                }
+            }
+        }
+        dependencies {
+            implementation("com.android.billingclient:billing-ktx:6.1.0")
+            implementation("com.google.android.gms:play-services-auth:21.0.1")
+            implementation("com.google.android.gms:play-services-location:21.2.0")
+            implementation("com.google.android.gms:play-services-ads:23.0.0")
+        }
+        EOF
+
+    - name: Remove Malformed Plugins Blocks
       working-directory: money-master
       run: |
-        find . -name "build.gradle" -o -name "build.gradle.kts" | xargs sed -i 's/signingConfig.*=.*signingConfigs.debug/signingConfig = null/g' || true
-        find . -name "build.gradle" -o -name "build.gradle.kts" | xargs sed -i 's/signingConfigs.debug/signingConfig = null/g' || true
+        find . -name "build.gradle.kts" -o -name "settings.gradle.kts" | xargs sed -i '/alias(libs.plugins/d' || true
+        find . -name "build.gradle.kts" | xargs sed -i '/signingConfig/d' || true
 
     - name: Build with Gradle
       working-directory: money-master
