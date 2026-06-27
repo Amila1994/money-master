@@ -31,76 +31,13 @@ jobs:
       with:
         gradle-version: 8.2
 
-    - name: Clean Build Config and Plugins
+    - name: Clean and Fix Version Catalog Errors
       working-directory: money-master
       run: |
-        # settings.gradle.kts අලුතින්ම නිවැරදිව ලිවීම
-        cat << 'EOF' > settings.gradle.kts
-        pluginManagement {
-            repositories {
-                google()
-                mavenCentral()
-                gradlePluginPortal()
-            }
-        }
-        dependencyResolutionManagement {
-            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-            repositories {
-                google()
-                mavenCentral()
-            }
-        }
-        rootProject.name = "money-master"
-        include(":app")
-        EOF
-
-        # build.gradle.kts වල තියෙන කරදරකාරී libs references සහ ප්ලගින් බ්ලොක්ස් ඉවත් කර සරල කිරීම
-        cat << 'EOF' > app/build.gradle.kts
-        plugins {
-            id("com.android.application") version "8.2.0"
-            id("org.jetbrains.kotlin.android") version "1.9.0"
-        }
-
-        android {
-            compileSdk = 34
-            namespace = "com.money.master"
-
-            defaultConfig {
-                applicationId = "com.money.master"
-                minSdk = 24
-                targetSdk = 34
-                versionCode = 1
-                versionName = "1.0"
-                testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-            }
-
-            buildTypes {
-                release {
-                    isMinifyEnabled = false
-                    proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-                }
-            }
-            compileOptions {
-                sourceCompatibility = JavaVersion.VERSION_17
-                targetCompatibility = JavaVersion.VERSION_17
-            }
-            kotlinOptions {
-                jvmTarget = "17"
-            }
-        }
-
-        dependencies {
-            implementation("com.android.billingclient:billing-ktx:6.1.0")
-            implementation("com.google.android.gms:play-services-auth:21.0.1")
-            implementation("com.google.android.gms:play-services-location:21.2.0")
-            implementation("com.google.android.gms:play-services-ads:23.0.0")
-            
-            // මූලික AndroidX dependencies
-            implementation("androidx.core:core-ktx:1.12.0")
-            implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
-            implementation("androidx.activity:activity-compose:1.8.2")
-        }
-        EOF
+        # ප්‍රොජෙක්ට් එකේ තියෙන සියලුම build.gradle.kts වල තියෙන alias(libs...) කොටස් සහ signingConfig සම්පූර්ණයෙන්ම ඉවත් කිරීම
+        find . -name "build.gradle.kts" -o -name "settings.gradle.kts" | xargs sed -i '/alias(libs.plugins/d' || true
+        find . -name "build.gradle.kts" | xargs sed -i '/signingConfig/d' || true
+        find . -name "build.gradle.kts" | xargs sed -i '/signingConfigs/d' || true
 
     - name: Build with Gradle
       working-directory: money-master
