@@ -27,17 +27,21 @@ jobs:
         fi
 
     - name: Generate Missing Gradle Wrapper
+      working-directory: money-master
       run: gradle wrapper
 
-    - name: Disable Keystore Signing for Debug Build
+    - name: Bypass Keystore Signing for Debug
+      working-directory: money-master
       run: |
         find . -name "build.gradle" -o -name "build.gradle.kts" | xargs sed -i 's/signingConfig.*=.*signingConfigs.debug/signingConfig = null/g' || true
         find . -name "build.gradle" -o -name "build.gradle.kts" | xargs sed -i 's/signingConfigs.debug/signingConfig = null/g' || true
 
     - name: Change output file permissions
+      working-directory: money-master
       run: chmod +x gradlew
 
     - name: Build with Gradle
+      working-directory: money-master
       run: ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Dorg.jetbrains.kotlin.compiler.runner.kotlin.daemon.ext.impl.backend.fksp=true"
 
     - name: Upload APK
