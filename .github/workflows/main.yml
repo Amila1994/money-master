@@ -31,44 +31,20 @@ jobs:
       with:
         gradle-version: 8.2
 
-    - name: Force Patch build.gradle.kts with Raw Code
-      run: |
-        cat << 'EOF' > money-master/app/build.gradle.kts
-        plugins {
-            alias(libs.plugins.android.application) apply false
-            alias(libs.plugins.kotlin.compose) apply false
-            alias(libs.plugins.google.devtools.ksp) apply false
-            alias(libs.plugins.roborazzi) apply false
-            alias(libs.plugins.secrets) apply false
-        }
-        android {
-            compileSdk = 34
-            defaultConfig {
-                applicationId = "com.money.master"
-                minSdk = 24
-                targetSdk = 34
-                versionCode = 1
-                versionName = "1.0"
-            }
-            buildTypes {
-                release {
-                    isMinifyEnabled = false
-                }
-            }
-        }
-        dependencies {
-            implementation("com.android.billingclient:billing-ktx:6.1.0")
-            implementation("com.google.android.gms:play-services-auth:21.0.1")
-            implementation("com.google.android.gms:play-services-location:21.2.0")
-            implementation("com.google.android.gms:play-services-ads:23.0.0")
-        }
-        EOF
-
-    - name: Remove Malformed Plugins Blocks
+    - name: Dynamic Code Patch for Version Catalog
       working-directory: money-master
       run: |
-        find . -name "build.gradle.kts" -o -name "settings.gradle.kts" | xargs sed -i '/alias(libs.plugins/d' || true
-        find . -name "build.gradle.kts" | xargs sed -i '/signingConfig/d' || true
+        # settings.gradle.kts සහ build.gradle.kts වල තියෙන දෝෂ සහිත libs ප්ලගින්ස් සාමාන්‍ය string ප්ලගින්ස් වලට හැරවීම
+        find . -name "build.gradle.kts" -o -name "settings.gradle.kts" | xargs sed -i 's/alias(libs.plugins.android.application)/id("com.android.application")/g' || true
+        find . -name "build.gradle.kts" -o -name "settings.gradle.kts" | xargs sed -i 's/alias(libs.plugins.kotlin.compose)/id("org.jetbrains.kotlin.plugin.compose")/g' || true
+        find . -name "build.gradle.kts" -o -name "settings.gradle.kts" | xargs sed -i 's/alias(libs.plugins.google.devtools.ksp)/id("com.google.devtools.ksp")/g' || true
+        find . -name "build.gradle.kts" -o -name "settings.gradle.kts" | xargs sed -i 's/alias(libs.plugins.roborazzi)/id("io.github.takahirom.roborazzi")/g' || true
+        find . -name "build.gradle.kts" -o -name "settings.gradle.kts" | xargs sed -i 's/alias(libs.plugins.secrets)/id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")/g' || true
+        find . -name "build.gradle.kts" -o -name "settings.gradle.kts" | xargs sed -i 's/alias(libs.plugins.kotlin.android)/id("org.jetbrains.kotlin.android")/g' || true
+        
+        # Keystore බයිපාස් කිරීම
+        find . -name "build.gradle.kts" | xargs sed -i 's/signingConfig.*=.*signingConfigs.debug/signingConfig = null/g' || true
+        find . -name "build.gradle.kts" | xargs sed -i 's/signingConfigs.debug/signingConfig = null/g' || true
 
     - name: Build with Gradle
       working-directory: money-master
