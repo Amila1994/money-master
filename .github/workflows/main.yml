@@ -31,16 +31,36 @@ jobs:
       with:
         gradle-version: 8.2
 
-    - name: Dynamic Code Patch for Version Catalog
+    - name: Dynamic Code Patch for Repositories and Catalog
       working-directory: money-master
       run: |
-        # settings.gradle.kts සහ build.gradle.kts වල තියෙන දෝෂ සහිත libs ප්ලගින්ස් සාමාන්‍ය string ප්ලගින්ස් වලට හැරවීම
-        find . -name "build.gradle.kts" -o -name "settings.gradle.kts" | xargs sed -i 's/alias(libs.plugins.android.application)/id("com.android.application")/g' || true
-        find . -name "build.gradle.kts" -o -name "settings.gradle.kts" | xargs sed -i 's/alias(libs.plugins.kotlin.compose)/id("org.jetbrains.kotlin.plugin.compose")/g' || true
-        find . -name "build.gradle.kts" -o -name "settings.gradle.kts" | xargs sed -i 's/alias(libs.plugins.google.devtools.ksp)/id("com.google.devtools.ksp")/g' || true
-        find . -name "build.gradle.kts" -o -name "settings.gradle.kts" | xargs sed -i 's/alias(libs.plugins.roborazzi)/id("io.github.takahirom.roborazzi")/g' || true
-        find . -name "build.gradle.kts" -o -name "settings.gradle.kts" | xargs sed -i 's/alias(libs.plugins.secrets)/id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")/g' || true
-        find . -name "build.gradle.kts" -o -name "settings.gradle.kts" | xargs sed -i 's/alias(libs.plugins.kotlin.android)/id("org.jetbrains.kotlin.android")/g' || true
+        # settings.gradle.kts එකට අවශ්‍ය Repositories බලෙන් ඇතුළත් කිරීම
+        cat << 'EOF' > settings.gradle.kts
+        pluginManagement {
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
+        }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        rootProject.name = "money-master"
+        include(":app")
+        EOF
+
+        # build.gradle.kts වල තියෙන දෝෂ සහිත libs ප්ලගින්ස් සාමාන්‍ය string ප්ලගින්ස් වලට හැරවීම (වර්ෂන් ද සහිතව)
+        find . -name "build.gradle.kts" | xargs sed -i 's/alias(libs.plugins.android.application)/id("com.android.application") version "8.2.0"/g' || true
+        find . -name "build.gradle.kts" | xargs sed -i 's/alias(libs.plugins.kotlin.compose)/id("org.jetbrains.kotlin.plugin.compose") version "1.9.0"/g' || true
+        find . -name "build.gradle.kts" | xargs sed -i 's/alias(libs.plugins.google.devtools.ksp)/id("com.google.devtools.ksp") version "1.9.0-1.0.13"/g' || true
+        find . -name "build.gradle.kts" | xargs sed -i 's/alias(libs.plugins.roborazzi)/id("io.github.takahirom.roborazzi") version "1.7.0"/g' || true
+        find . -name "build.gradle.kts" | xargs sed -i 's/alias(libs.plugins.secrets)/id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin") version "2.0.1"/g' || true
+        find . -name "build.gradle.kts" | xargs sed -i 's/alias(libs.plugins.kotlin.android)/id("org.jetbrains.kotlin.android") version "1.9.0"/g' || true
         
         # Keystore බයිපාස් කිරීම
         find . -name "build.gradle.kts" | xargs sed -i 's/signingConfig.*=.*signingConfigs.debug/signingConfig = null/g' || true
