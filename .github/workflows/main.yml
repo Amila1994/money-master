@@ -26,19 +26,21 @@ jobs:
           exit 1
         fi
 
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
+
     - name: Bypass Keystore Signing for Debug
       working-directory: money-master
       run: |
         find . -name "build.gradle" -o -name "build.gradle.kts" | xargs sed -i 's/signingConfig.*=.*signingConfigs.debug/signingConfig = null/g' || true
         find . -name "build.gradle" -o -name "build.gradle.kts" | xargs sed -i 's/signingConfigs.debug/signingConfig = null/g' || true
 
-    - name: Change output file permissions
+    - name: Build with Gradle Wrapper Setup
       working-directory: money-master
-      run: chmod +x gradlew
-
-    - name: Build with Gradle
-      working-directory: money-master
-      run: ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Dorg.jetbrains.kotlin.compiler.runner.kotlin.daemon.ext.impl.backend.fksp=true"
+      run: |
+        gradle wrapper
+        chmod +x gradlew
+        ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Dorg.jetbrains.kotlin.compiler.runner.kotlin.daemon.ext.impl.backend.fksp=true"
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
