@@ -29,21 +29,19 @@ jobs:
     - name: Generate Missing Gradle Wrapper
       run: gradle wrapper
 
-    - name: Force Generate Debug Keystore
+    - name: Disable Keystore Signing for Debug Build
       run: |
-        mkdir -p ~/.android
-        keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-        cp ~/.android/debug.keystore money-master/
-        cp ~/.android/debug.keystore money-master/app/
+        find . -name "build.gradle" -o -name "build.gradle.kts" | xargs sed -i 's/signingConfig.*=.*signingConfigs.debug/signingConfig = null/g' || true
+        find . -name "build.gradle" -o -name "build.gradle.kts" | xargs sed -i 's/signingConfigs.debug/signingConfig = null/g' || true
 
     - name: Change output file permissions
       run: chmod +x gradlew
 
     - name: Build with Gradle
-      run: ./gradlew assembleDebug -Dorg.gradle.jvmargs="-Dorg.jetbrains.kotlin.compiler.runner.kotlin.daemon.ext.impl.backend.fksp=true"
+      run: ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Dorg.jetbrains.kotlin.compiler.runner.kotlin.daemon.ext.impl.backend.fksp=true"
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: app-debug-apk
-        path: app/build/outputs/apk/debug/app-debug.apk
+        path: "**/build/outputs/apk/debug/*.apk"
