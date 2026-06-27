@@ -26,10 +26,6 @@ jobs:
           exit 1
         fi
 
-    - name: Generate Missing Gradle Wrapper
-      working-directory: money-master
-      run: gradle wrapper
-
     - name: Bypass Keystore Signing for Debug
       working-directory: money-master
       run: |
