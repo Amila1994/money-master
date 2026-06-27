@@ -31,32 +31,86 @@ jobs:
       with:
         gradle-version: 8.2
 
-    - name: Ultimate Catalog and Dependency Fixer
-      working-directory: money-master
+    - name: Master Rewrite for Gradle Configurations
       run: |
-        # 1. සියලුම ප්ලගින් references සාමාන්‍ය ඒවා බවට හැරවීම සහ වැරදි ලයින් ඉවත් කිරීම
-        find . -name "build.gradle.kts" -o -name "settings.gradle.kts" | xargs sed -i '/alias(libs.plugins/d' || true
-        find . -name "build.gradle.kts" | xargs sed -i '/signingConfig/d' || true
-        find . -name "build.gradle.kts" | xargs sed -i '/signingConfigs/d' || true
-        
-        # 2. බිල්ඩ් එක ක්‍රාෂ් කරන සියලුම 'libs.' dependencies වෙනුවට ස්ථාවර AndroidX dependencies ආදේශ කිරීම
-        find . -name "build.gradle.kts" | xargs sed -i 's/libs.androidx.core.ktx/"androidx.core:core-ktx:1.12.0"/g' || true
-        find . -name "build.gradle.kts" | xargs sed -i 's/libs.androidx.lifecycle.runtime.ktx/"androidx.lifecycle:lifecycle-runtime-ktx:2.6.2"/g' || true
-        find . -name "build.gradle.kts" | xargs sed -i 's/libs.androidx.activity.compose/"androidx.activity:activity-compose:1.8.2"/g' || true
-        find . -name "build.gradle.kts" | xargs sed -i 's/libs.androidx.ui/"androidx.compose.ui:ui:1.5.4"/g' || true
-        find . -name "build.gradle.kts" | xargs sed -i 's/libs.androidx.ui.graphics/"androidx.compose.ui:ui-graphics:1.5.4"/g' || true
-        find . -name "build.gradle.kts" | xargs sed -i 's/libs.androidx.ui.tooling.preview/"androidx.compose.ui:ui-tooling-preview:1.5.4"/g' || true
-        find . -name "build.gradle.kts" | xargs sed -i 's/libs.androidx.material3/"androidx.compose.material3:material3:1.1.2"/g' || true
-        
-        # 3. ටෙස්ට් ලයින් වල තියෙන සියලුම 'libs.' කොටස්ද ස්ථාවර වර්ෂන් වලට හැරවීම
-        find . -name "build.gradle.kts" | xargs sed -i 's/libs.androidx.junit/"androidx.test.ext:junit:1.1.5"/g' || true
-        find . -name "build.gradle.kts" | xargs sed -i 's/libs.androidx.espresso.core/"androidx.test.espresso:espresso-core:3.5.1"/g' || true
-        find . -name "build.gradle.kts" | xargs sed -i 's/libs.androidx.ui.test.junit4/"androidx.compose.ui:ui-test-junit4:1.5.4"/g' || true
-        find . -name "build.gradle.kts" | xargs sed -i 's/libs.androidx.ui.tooling/"androidx.compose.ui:ui-tooling:1.5.4"/g' || true
-        find . -name "build.gradle.kts" | xargs sed -i 's/libs.androidx.ui.test.manifest/"androidx.compose.ui:ui-test-manifest:1.5.4"/g' || true
-        
-        # 4. ඉතිරි විය හැකි ඕනෑම 'libs.' references අඩංගු ලයින් සම්පූර්ණයෙන්ම මකා දැමීම (බිල්ඩ් එක ආරක්ෂා කිරීමට)
-        find . -name "build.gradle.kts" | xargs sed -i '/libs\./d' || true
+        # 1. settings.gradle.kts එක සම්පූර්ණයෙන්ම පිරිසිදුව ලිවීම
+        cat << 'EOF' > money-master/settings.gradle.kts
+        pluginManagement {
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
+        }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        rootProject.name = "money-master"
+        include(":app")
+        EOF
+
+        # 2. app/build.gradle.kts එක කිසිම Syntax වැරැද්දක් නැතිව අලුතින්ම ලිවීම
+        cat << 'EOF' > money-master/app/build.gradle.kts
+        plugins {
+            id("com.android.application") version "8.2.0"
+            id("org.jetbrains.kotlin.android") version "1.9.0"
+        }
+
+        android {
+            compileSdk = 34
+            namespace = "com.money.master"
+
+            defaultConfig {
+                applicationId = "com.money.master"
+                minSdk = 24
+                targetSdk = 34
+                versionCode = 1
+                versionName = "1.0"
+                testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+            }
+
+            buildTypes {
+                release {
+                    isMinifyEnabled = false
+                }
+            }
+            compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
+            }
+            kotlinOptions {
+                jvmTarget = "17"
+            }
+        }
+
+        dependencies {
+            implementation("androidx.core:core-ktx:1.12.0")
+            implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+            implementation("androidx.activity:activity-compose:1.8.2")
+            implementation("androidx.compose.ui:ui:1.5.4")
+            implementation("androidx.compose.ui:ui-graphics:1.5.4")
+            implementation("androidx.compose.ui:ui-tooling-preview:1.5.4")
+            implementation("androidx.compose.material3:material3:1.1.2")
+            
+            // ඔයාට අවශ්‍ය වුණු Google SDK සහ Ads
+            implementation("com.android.billingclient:billing-ktx:6.1.0")
+            implementation("com.google.android.gms:play-services-auth:21.0.1")
+            implementation("com.google.android.gms:play-services-location:21.2.0")
+            implementation("com.google.android.gms:play-services-ads:23.0.0")
+
+            // Test Dependencies (Syntax දෝෂ වලින් තොරව)
+            testImplementation("junit:junit:4.13.2")
+            androidTestImplementation("androidx.test.ext:junit:1.1.5")
+            androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+            androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.5.4")
+            debugImplementation("androidx.compose.ui:ui-tooling:1.5.4")
+            debugImplementation("androidx.compose.ui:ui-test-manifest:1.5.4")
+        }
+        EOF
 
     - name: Build with Gradle
       working-directory: money-master
