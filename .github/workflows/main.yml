@@ -26,8 +26,12 @@ jobs:
           exit 1
         fi
 
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v4
+    - name: Install Specific Gradle Version
+      run: |
+        wget https://services.gradle.org/distributions/gradle-8.2-bin.zip
+        sudo unzip -d /opt/gradle gradle-8.2-bin.zip
+        export PATH=$PATH:/opt/gradle/gradle-8.2/bin
+        echo "/opt/gradle/gradle-8.2/bin" >> $GITHUB_PATH
 
     - name: Bypass Keystore Signing for Debug
       working-directory: money-master
@@ -35,7 +39,7 @@ jobs:
         find . -name "build.gradle" -o -name "build.gradle.kts" | xargs sed -i 's/signingConfig.*=.*signingConfigs.debug/signingConfig = null/g' || true
         find . -name "build.gradle" -o -name "build.gradle.kts" | xargs sed -i 's/signingConfigs.debug/signingConfig = null/g' || true
 
-    - name: Build with Gradle Wrapper Setup
+    - name: Build with Fixed Gradle Version
       working-directory: money-master
       run: |
         gradle wrapper
