@@ -31,10 +31,10 @@ jobs:
       with:
         gradle-version: 8.2
 
-    - name: Dynamic Code Patch for Repositories and Catalog
+    - name: Clean Build Config and Plugins
       working-directory: money-master
       run: |
-        # settings.gradle.kts එකට අවශ්‍ය Repositories බලෙන් ඇතුළත් කිරීම
+        # settings.gradle.kts අලුතින්ම නිවැරදිව ලිවීම
         cat << 'EOF' > settings.gradle.kts
         pluginManagement {
             repositories {
@@ -54,17 +54,53 @@ jobs:
         include(":app")
         EOF
 
-        # build.gradle.kts වල තියෙන දෝෂ සහිත libs ප්ලගින්ස් සාමාන්‍ය string ප්ලගින්ස් වලට හැරවීම (වර්ෂන් ද සහිතව)
-        find . -name "build.gradle.kts" | xargs sed -i 's/alias(libs.plugins.android.application)/id("com.android.application") version "8.2.0"/g' || true
-        find . -name "build.gradle.kts" | xargs sed -i 's/alias(libs.plugins.kotlin.compose)/id("org.jetbrains.kotlin.plugin.compose") version "1.9.0"/g' || true
-        find . -name "build.gradle.kts" | xargs sed -i 's/alias(libs.plugins.google.devtools.ksp)/id("com.google.devtools.ksp") version "1.9.0-1.0.13"/g' || true
-        find . -name "build.gradle.kts" | xargs sed -i 's/alias(libs.plugins.roborazzi)/id("io.github.takahirom.roborazzi") version "1.7.0"/g' || true
-        find . -name "build.gradle.kts" | xargs sed -i 's/alias(libs.plugins.secrets)/id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin") version "2.0.1"/g' || true
-        find . -name "build.gradle.kts" | xargs sed -i 's/alias(libs.plugins.kotlin.android)/id("org.jetbrains.kotlin.android") version "1.9.0"/g' || true
-        
-        # Keystore බයිපාස් කිරීම
-        find . -name "build.gradle.kts" | xargs sed -i 's/signingConfig.*=.*signingConfigs.debug/signingConfig = null/g' || true
-        find . -name "build.gradle.kts" | xargs sed -i 's/signingConfigs.debug/signingConfig = null/g' || true
+        # build.gradle.kts වල තියෙන කරදරකාරී libs references සහ ප්ලගින් බ්ලොක්ස් ඉවත් කර සරල කිරීම
+        cat << 'EOF' > app/build.gradle.kts
+        plugins {
+            id("com.android.application") version "8.2.0"
+            id("org.jetbrains.kotlin.android") version "1.9.0"
+        }
+
+        android {
+            compileSdk = 34
+            namespace = "com.money.master"
+
+            defaultConfig {
+                applicationId = "com.money.master"
+                minSdk = 24
+                targetSdk = 34
+                versionCode = 1
+                versionName = "1.0"
+                testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+            }
+
+            buildTypes {
+                release {
+                    isMinifyEnabled = false
+                    proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+                }
+            }
+            compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
+            }
+            kotlinOptions {
+                jvmTarget = "17"
+            }
+        }
+
+        dependencies {
+            implementation("com.android.billingclient:billing-ktx:6.1.0")
+            implementation("com.google.android.gms:play-services-auth:21.0.1")
+            implementation("com.google.android.gms:play-services-location:21.2.0")
+            implementation("com.google.android.gms:play-services-ads:23.0.0")
+            
+            // මූලික AndroidX dependencies
+            implementation("androidx.core:core-ktx:1.12.0")
+            implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+            implementation("androidx.activity:activity-compose:1.8.2")
+        }
+        EOF
 
     - name: Build with Gradle
       working-directory: money-master
