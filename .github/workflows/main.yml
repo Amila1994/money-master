@@ -11,11 +11,11 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Set up JDK 11
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         distribution: 'zulu'
-        java-version: '11'
+        java-version: '17'
 
     - name: Unzip Project
       run: |
@@ -32,7 +32,7 @@ jobs:
         gradle-version: 8.2
 
     - name: Build with Gradle
-      run: gradle assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Dorg.jetbrains.kotlin.compiler.runner.kotlin.daemon.ext.impl.backend.fksp=true"
+      run: gradle assembleDebug --no-daemon --refresh-dependencies -Dorg.gradle.jvmargs="-Dorg.jetbrains.kotlin.compiler.runner.kotlin.daemon.ext.impl.backend.fksp=true"
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
