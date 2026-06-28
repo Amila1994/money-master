@@ -26,13 +26,20 @@ jobs:
           exit 1
         fi
 
+    - name: Auto Update Settings for Compatibility
+      run: |
+        # settings.gradle.kts එක ඇතුළේ බිල්ඩ් එක ක්‍රාෂ් කරන foojay ප්ලගින් එක සම්පූර්ණයෙන්ම මකා දැමීම
+        if [ -f "settings.gradle.kts" ]; then
+          sed -i '/id("org.gradle.toolchains.foojay-resolver-convention")/d' settings.gradle.kts
+        fi
+
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
       with:
         gradle-version: 8.2
 
     - name: Build with Gradle
-      run: gradle assembleDebug --no-daemon --refresh-dependencies -Dorg.gradle.jvmargs="-Dorg.jetbrains.kotlin.compiler.runner.kotlin.daemon.ext.impl.backend.fksp=true"
+      run: gradle assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Dorg.jetbrains.kotlin.compiler.runner.kotlin.daemon.ext.impl.backend.fksp=true"
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
