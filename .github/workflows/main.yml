@@ -24,12 +24,10 @@ jobs:
 
       - name: Extract & Setup Project
         run: |
-          # Zip එක Extract කිරීම
           if [ -f "money-master.zip" ]; then
             unzip -o money-master.zip
           fi
 
-          # build.gradle හෝ build.gradle.kts තියෙන තැන සෙවීම
           BUILD_FILE_PATH=$(find . -maxdepth 3 -name "build.gradle*" | head -n 1)
 
           if [ -z "$BUILD_FILE_PATH" ]; then
@@ -40,15 +38,20 @@ jobs:
           PROJECT_DIR=$(dirname "$BUILD_FILE_PATH")
           cd "$PROJECT_DIR"
 
-          # gradlew file එක generate කිරීම / upgrade කිරීම (Gradle 9.3.1 සමග)
           gradle wrapper --gradle-version 9.3.1
           chmod +x gradlew
           echo "PROJECT_DIR=$(pwd)" >> $GITHUB_ENV
 
-      - name: Setup Constant Debug Keystore
+      - name: Setup Keystore Everywhere
         run: |
+          # Default Android location එකේ keystore එක සෑදීම
           mkdir -p ~/.android
           keytool -genkeypair -alias androiddebugkey -keypass android -keystore ~/.android/debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 10000 -keyalg RSA -keysize 2048
+
+          # Project folder එක ඇතුළටත් copy කිරීම (Gradle config එකෙන් හොයන්නේ මෙතන)
+          cp ~/.android/debug.keystore ${{ env.PROJECT_DIR }}/debug.keystore
+          mkdir -p ${{ env.PROJECT_DIR }}/app
+          cp ~/.android/debug.keystore ${{ env.PROJECT_DIR }}/app/debug.keystore
 
       - name: Print SHA-1 Key
         run: |
