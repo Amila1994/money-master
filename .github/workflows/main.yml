@@ -1,7 +1,10 @@
-name: Android CI
+Name: Android CI
 
 on:
   workflow_dispatch:
+
+env:
+  WEB_CLIENT_ID: "9530189130-dtpkvsafqeaa9rjslkq3ag8p581gugu1.apps.googleusercontent.com"
 
 jobs:
   build:
@@ -57,10 +60,27 @@ jobs:
         run: |
           keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
 
+      - name: Inject Web Client ID into google-services.json
+        run: |
+          # app/google-services.json තිබේදැයි පරීක්ෂා කර Client ID එක Inject කිරීම
+          JSON_FILE="${{ env.PROJECT_DIR }}/app/google-services.json"
+          if [ -f "$JSON_FILE" ]; then
+            echo "Injecting Web Client ID into google-services.json..."
+            jq --arg client_id "${{ env.WEB_CLIENT_ID }}" '
+              .client[0].oauth_client = (
+                (.client[0].oauth_client // []) + [{"client_id": $client_id, "client_type": 3}]
+              )
+            ' "$JSON_FILE" > tmp.json && mv tmp.json "$JSON_FILE"
+          else
+            echo "google-services.json file not found. Skipping injection."
+          fi
+
       - name: Build with Gradle
         run: |
           cd ${{ env.PROJECT_DIR }}
-          ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Dorg.jetbrains.kotlin.compiler.runner.kotlin.daemon.ext.impl.backend.fksp=true"
+          ./gradlew assembleDebug --no-daemon \
+            -PdefaultWebClientId="${{ env.WEB_CLIENT_ID }}" \
+            -Dorg.gradle.jvmargs="-Dorg.jetbrains.kotlin.compiler.runner.kotlin.daemon.ext.impl.backend.fksp=true"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
