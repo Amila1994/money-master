@@ -17,28 +17,37 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
-      - name: Extract & Find Gradlew
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
+
+      - name: Extract & Setup Project
         run: |
-          # 1. Zip එක තිබේ නම් Extract කිරීම
+          # Zip එක Extract කිරීම
           if [ -f "money-master.zip" ]; then
             unzip -o money-master.zip
           fi
 
-          # 2. gradlew file එක තියෙන තැන සෙවීම
-          GRADLEW_PATH=$(find . -name "gradlew" -type f | head -n 1)
+          # build.gradle හෝ build.gradle.kts තියෙන තැන සෙවීම
+          BUILD_FILE_PATH=$(find . -maxdepth 3 -name "build.gradle*" | head -n 1)
 
-          if [ -z "$GRADLEW_PATH" ]; then
-            echo "Error: gradlew file not found anywhere!"
+          if [ -z "$BUILD_FILE_PATH" ]; then
+            echo "Error: build.gradle file not found!"
             exit 1
           fi
 
-          # 3. Execution Permission දීම
-          chmod +x "$GRADLEW_PATH"
-          
-          # 4. gradlew තියෙන directory එක මතක තබා ගැනීම
-          PROJECT_DIR=$(dirname "$GRADLEW_PATH")
-          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
-          echo "Found gradlew in: $PROJECT_DIR"
+          PROJECT_DIR=$(dirname "$BUILD_FILE_PATH")
+          cd "$PROJECT_DIR"
+
+          # gradlew file එක නැත්නම් අලුතින් generate කිරීම
+          if [ ! -f "gradlew" ]; then
+            echo "gradlew not found. Generating wrapper..."
+            gradle wrapper
+          fi
+
+          chmod +x gradlew
+          echo "PROJECT_DIR=$(pwd)" >> $GITHUB_ENV
 
       - name: Setup Constant Debug Keystore
         run: |
@@ -48,11 +57,6 @@ jobs:
       - name: Print SHA-1 Key
         run: |
           keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: 9.3.1
 
       - name: Build with Gradle
         run: |
