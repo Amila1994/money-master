@@ -20,7 +20,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: 8.7
+          gradle-version: 9.3.1
 
       - name: Extract & Setup Project
         run: |
@@ -40,12 +40,8 @@ jobs:
           PROJECT_DIR=$(dirname "$BUILD_FILE_PATH")
           cd "$PROJECT_DIR"
 
-          # gradlew file එක නැත්නම් අලුතින් generate කිරීම
-          if [ ! -f "gradlew" ]; then
-            echo "gradlew not found. Generating wrapper..."
-            gradle wrapper
-          fi
-
+          # gradlew file එක generate කිරීම / upgrade කිරීම (Gradle 9.3.1 සමග)
+          gradle wrapper --gradle-version 9.3.1
           chmod +x gradlew
           echo "PROJECT_DIR=$(pwd)" >> $GITHUB_ENV
 
