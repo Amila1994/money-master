@@ -44,18 +44,6 @@ jobs:
           fi
           chmod +x gradlew
 
-      - name: Copy Keystore to Project
-        run: |
-          # Root එකේ ඇති debug.keystore එක build වෙන තැන් වලට Copy කිරීම
-          if [ -f "debug.keystore" ]; then
-            cp debug.keystore "${{ env.PROJECT_DIR }}/debug.keystore"
-            mkdir -p "${{ env.PROJECT_DIR }}/app"
-            cp debug.keystore "${{ env.PROJECT_DIR }}/app/debug.keystore"
-            echo "Keystore copied successfully!"
-          else
-            echo "Warning: debug.keystore not found in repository root!"
-          fi
-
       - name: Show Fixed SHA1 Key
         run: |
           KEYSTORE_PATH="${{ env.PROJECT_DIR }}/app/debug.keystore"
@@ -65,6 +53,8 @@ jobs:
             echo "=========================================="
             keytool -list -v -keystore "$KEYSTORE_PATH" -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
             echo "=========================================="
+          else
+            echo "Warning: app/debug.keystore not found!"
           fi
 
       - name: Setup Gradle Cache
