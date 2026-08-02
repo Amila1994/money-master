@@ -1,4 +1,4 @@
-Name: Android APK Build (Fixed Keystore)
+name: Android APK Build (Fixed Keystore)
 
 on:
   workflow_dispatch:
