@@ -1,4 +1,4 @@
-name: Android APK Build (Fixed Keystore)
+Name: Android APK Build (Fixed Keystore)
 
 on:
   workflow_dispatch:
@@ -78,14 +78,14 @@ jobs:
             exit 1
           fi
 
-      - name: Show Fixed SHA1 Key
+      - name: Show Fixed SHA1 & SHA256 Keys for Firebase
         run: |
           KEYSTORE_PATH="${{ env.PROJECT_DIR }}/app/debug.keystore"
           if [ -f "$KEYSTORE_PATH" ]; then
             echo "=========================================="
-            echo "       YOUR SHA-1 KEY FOR FIREBASE        "
+            echo "     YOUR SHA KEYS FOR FIREBASE CONSOLE   "
             echo "=========================================="
-            keytool -list -v -keystore "$KEYSTORE_PATH" -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
+            keytool -list -v -keystore "$KEYSTORE_PATH" -alias androiddebugkey -storepass android -keypass android | grep -E "SHA1:|SHA256:"
             echo "=========================================="
           fi
 
