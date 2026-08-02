@@ -1,4 +1,4 @@
-name: Web App Build
+name: Android APK Build
 
 on:
   workflow_dispatch:
@@ -13,18 +13,51 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
         with:
-          node-version: 20
+          distribution: 'zulu'
+          java-version: '21'
 
-      - name: Extract zip if present
+      - name: Extract Zip & Locate Android Project
         run: |
+          # Zip files ඇත්නම් ලිහා ගැනීම (money-master.zip හෝ classroom-hub.zip)
           if [ -f "money-master.zip" ]; then
             unzip -o money-master.zip
+          elif [ -f "classroom-hub.zip" ]; then
+            unzip -o classroom-hub.zip
           fi
 
-      - name: Install & Build Web App
+          # build.gradle ඇති තැන sub-folders ඇතුළෙන් Auto-Find කරගැනීම
+          BUILD_FILE_PATH=$(find . -name "build.gradle*" -not -path "*/.gradle/*" | head -n 1)
+
+          if [ -z "$BUILD_FILE_PATH" ]; then
+            echo "Error: build.gradle file not found in the project!"
+            exit 1
+          fi
+
+          # Project Directory එක සොයාගෙන Absolute Path එක Save කිරීම
+          PROJECT_DIR=$(cd $(dirname "$BUILD_FILE_PATH") && pwd)
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+          echo "Found Android project at: $PROJECT_DIR"
+
+          # Gradlew එකට Permissions ලබාදීම සහ Gradle Wrapper සකස් කිරීම
+          cd "$PROJECT_DIR"
+          if [ ! -f "./gradlew" ]; then
+            gradle wrapper
+          fi
+          chmod +x gradlew
+
+      - name: Setup Gradle Cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build Android Debug APK
         run: |
-          npm install
-          npm run build
+          cd "${{ env.PROJECT_DIR }}"
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: classroom-hub-app-debug
+          path: "${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk"
