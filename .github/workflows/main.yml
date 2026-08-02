@@ -58,6 +58,19 @@ jobs:
           fi
           chmod +x gradlew
 
+      - name: Copy google-services.json to App Directory
+        run: |
+          # Root එකේ google-services.json තිබේ නම් එය Project එකේ app folder එකට Copy කිරීම
+          JSON_SRC=$(find . -maxdepth 2 -name "google-services.json" | head -n 1)
+          
+          if [ -n "$JSON_SRC" ]; then
+            mkdir -p "${{ env.PROJECT_DIR }}/app"
+            cp "$JSON_SRC" "${{ env.PROJECT_DIR }}/app/google-services.json"
+            echo "google-services.json successfully copied to ${{ env.PROJECT_DIR }}/app/"
+          else
+            echo "Warning: google-services.json not found in root, using project's existing json."
+          fi
+
       - name: Copy Keystore to All Required Locations
         run: |
           KEYSTORE_SRC="${{ env.SAVED_KEYSTORE_PATH }}"
