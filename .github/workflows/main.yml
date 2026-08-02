@@ -1,4 +1,4 @@
-name: Android APK Build
+name: Android APK Build (Fixed Key)
 
 on:
   workflow_dispatch:
@@ -21,14 +21,12 @@ jobs:
 
       - name: Extract Zip & Locate Android Project
         run: |
-          # Zip files ඇත්නම් ලිහා ගැනීම (money-master.zip හෝ classroom-hub.zip)
           if [ -f "money-master.zip" ]; then
             unzip -o money-master.zip
           elif [ -f "classroom-hub.zip" ]; then
             unzip -o classroom-hub.zip
           fi
 
-          # build.gradle ඇති තැන sub-folders ඇතුළෙන් Auto-Find කරගැනීම
           BUILD_FILE_PATH=$(find . -name "build.gradle*" -not -path "*/.gradle/*" | head -n 1)
 
           if [ -z "$BUILD_FILE_PATH" ]; then
@@ -36,12 +34,10 @@ jobs:
             exit 1
           fi
 
-          # Project Directory එක සොයාගෙන Absolute Path එක Save කිරීම
           PROJECT_DIR=$(cd $(dirname "$BUILD_FILE_PATH") && pwd)
           echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
           echo "Found Android project at: $PROJECT_DIR"
 
-          # Gradlew එකට Permissions ලබාදීම සහ Gradle Wrapper සකස් කිරීම
           cd "$PROJECT_DIR"
           if [ ! -f "./gradlew" ]; then
             gradle wrapper
