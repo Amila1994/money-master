@@ -25,41 +25,44 @@ jobs:
         with:
           gradle-version: 9.3.1
 
-      - name: Extract & Setup Project
+      - name: Extract & Find Project Directory
         run: |
+          # Zip file එකක් තිබේ නම් Extract කිරීම
           if [ -f "money-master.zip" ]; then
+            echo "Extracting money-master.zip..."
             unzip -o money-master.zip
           fi
 
-          BUILD_FILE_PATH=$(find . -maxdepth 3 -name "build.gradle*" | head -n 1)
+          # build.gradle හෝ build.gradle.kts සොයා ගැනීම (ඕනෑම 📁 Subfolder එකක් ඇතුළේ තිබුණත් සොයා ගනී)
+          BUILD_FILE_PATH=$(find . -name "build.gradle" -o -name "build.gradle.kts" | head -n 1)
 
           if [ -z "$BUILD_FILE_PATH" ]; then
-            echo "Error: build.gradle file not found!"
+            echo "Error: build.gradle file not found anywhere in the workspace!"
             exit 1
           fi
 
-          PROJECT_DIR=$(dirname "$BUILD_FILE_PATH")
-          cd "$PROJECT_DIR"
+          # Absolute path එක සකසා GITHUB_ENV එකට එකතු කිරීම
+          PROJECT_DIR=$(cd $(dirname "$BUILD_FILE_PATH") && pwd)
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+          echo "Found project directory at: $PROJECT_DIR"
 
+          # Wrapper එක සකස් කිරීම
+          cd "$PROJECT_DIR"
           gradle wrapper --gradle-version 9.3.1
           chmod +x gradlew
-          echo "PROJECT_DIR=$(pwd)" >> $GITHUB_ENV
 
-      # ස්ථිර Keystore එකක් සාදා ගන්නා කොටස
       - name: Setup Keystore Everywhere
         run: |
           mkdir -p ~/.android
           
-          # ස්ථිර Serial Number එකක් සහ Details සහිතව Keystore එක නිර්මාණය කිරීම
           keytool -genkeypair -alias androiddebugkey -keypass android \
             -keystore ~/.android/debug.keystore -storepass android \
             -dname "CN=Android Debug,O=Android,C=US" \
             -validity 10000 -keyalg RSA -keysize 2048
 
-          # Project folders ඇතුළට Copy කිරීම
-          cp ~/.android/debug.keystore ${{ env.PROJECT_DIR }}/debug.keystore
-          mkdir -p ${{ env.PROJECT_DIR }}/app
-          cp ~/.android/debug.keystore ${{ env.PROJECT_DIR }}/app/debug.keystore
+          cp ~/.android/debug.keystore "${{ env.PROJECT_DIR }}/debug.keystore"
+          mkdir -p "${{ env.PROJECT_DIR }}/app"
+          cp ~/.android/debug.keystore "${{ env.PROJECT_DIR }}/app/debug.keystore"
 
       - name: Print SHA-1 Key
         run: |
@@ -76,12 +79,12 @@ jobs:
               )
             ' "$JSON_FILE" > tmp.json && mv tmp.json "$JSON_FILE"
           else
-            echo "google-services.json file not found. Skipping injection."
+            echo "google-services.json file not found at $JSON_FILE. Skipping injection."
           fi
 
       - name: Build with Gradle
         run: |
-          cd ${{ env.PROJECT_DIR }}
+          cd "${{ env.PROJECT_DIR }}"
           ./gradlew assembleDebug --no-daemon \
             -PdefaultWebClientId="${{ env.WEB_CLIENT_ID }}" \
             -Dorg.gradle.jvmargs="-Dorg.jetbrains.kotlin.compiler.runner.kotlin.daemon.ext.impl.backend.fksp=true"
@@ -90,4 +93,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: "**/build/outputs/apk/debug/*.apk"
+          path: "${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk"
