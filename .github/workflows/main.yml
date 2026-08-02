@@ -1,10 +1,9 @@
-name: Android CI
+name: Web App Build
 
 on:
   workflow_dispatch:
-
-env:
-  WEB_CLIENT_ID: "9530189130-dtpkvsafqeaa9rjslkq3ag8p581gugu1.apps.googleusercontent.com"
+  push:
+    branches: [ "main", "master" ]
 
 jobs:
   build:
@@ -14,83 +13,18 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          distribution: 'zulu'
-          java-version: '21'
+          node-version: 20
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: 9.3.1
-
-      - name: Extract & Find Project Directory
+      - name: Extract zip if present
         run: |
-          # Zip file එකක් තිබේ නම් Extract කිරීම
           if [ -f "money-master.zip" ]; then
-            echo "Extracting money-master.zip..."
             unzip -o money-master.zip
           fi
 
-          # build.gradle හෝ build.gradle.kts සොයා ගැනීම (ඕනෑම 📁 Subfolder එකක් ඇතුළේ තිබුණත් සොයා ගනී)
-          BUILD_FILE_PATH=$(find . -name "build.gradle" -o -name "build.gradle.kts" | head -n 1)
-
-          if [ -z "$BUILD_FILE_PATH" ]; then
-            echo "Error: build.gradle file not found anywhere in the workspace!"
-            exit 1
-          fi
-
-          # Absolute path එක සකසා GITHUB_ENV එකට එකතු කිරීම
-          PROJECT_DIR=$(cd $(dirname "$BUILD_FILE_PATH") && pwd)
-          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
-          echo "Found project directory at: $PROJECT_DIR"
-
-          # Wrapper එක සකස් කිරීම
-          cd "$PROJECT_DIR"
-          gradle wrapper --gradle-version 9.3.1
-          chmod +x gradlew
-
-      - name: Setup Keystore Everywhere
+      - name: Install & Build Web App
         run: |
-          mkdir -p ~/.android
-          
-          keytool -genkeypair -alias androiddebugkey -keypass android \
-            -keystore ~/.android/debug.keystore -storepass android \
-            -dname "CN=Android Debug,O=Android,C=US" \
-            -validity 10000 -keyalg RSA -keysize 2048
-
-          cp ~/.android/debug.keystore "${{ env.PROJECT_DIR }}/debug.keystore"
-          mkdir -p "${{ env.PROJECT_DIR }}/app"
-          cp ~/.android/debug.keystore "${{ env.PROJECT_DIR }}/app/debug.keystore"
-
-      - name: Print SHA-1 Key
-        run: |
-          keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
-
-      - name: Inject Web Client ID into google-services.json
-        run: |
-          JSON_FILE="${{ env.PROJECT_DIR }}/app/google-services.json"
-          if [ -f "$JSON_FILE" ]; then
-            echo "Injecting Web Client ID into google-services.json..."
-            jq --arg client_id "${{ env.WEB_CLIENT_ID }}" '
-              .client[0].oauth_client = (
-                (.client[0].oauth_client // []) + [{"client_id": $client_id, "client_type": 3}]
-              )
-            ' "$JSON_FILE" > tmp.json && mv tmp.json "$JSON_FILE"
-          else
-            echo "google-services.json file not found at $JSON_FILE. Skipping injection."
-          fi
-
-      - name: Build with Gradle
-        run: |
-          cd "${{ env.PROJECT_DIR }}"
-          ./gradlew assembleDebug --no-daemon \
-            -PdefaultWebClientId="${{ env.WEB_CLIENT_ID }}" \
-            -Dorg.gradle.jvmargs="-Dorg.jetbrains.kotlin.compiler.runner.kotlin.daemon.ext.impl.backend.fksp=true"
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug-apk
-          path: "${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk"
+          npm install
+          npm run build
