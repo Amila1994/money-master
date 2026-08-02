@@ -44,17 +44,40 @@ jobs:
           fi
           chmod +x gradlew
 
+      - name: Copy Keystore to All Required Locations
+        run: |
+          # Root directory එකේ ඇති debug.keystore එක සොයා ගැනීම
+          if [ -f "debug.keystore" ]; then
+            KEYSTORE_SRC="debug.keystore"
+          elif [ -f "app/debug.keystore" ]; then
+            KEYSTORE_SRC="app/debug.keystore"
+          fi
+
+          if [ -n "$KEYSTORE_SRC" ]; then
+            echo "Found keystore at: $KEYSTORE_SRC"
+            
+            # Gradle එක හොයන හැම තැනටම Copy කිරීම
+            mkdir -p ~/.android
+            cp "$KEYSTORE_SRC" ~/.android/debug.keystore
+            cp "$KEYSTORE_SRC" "${{ env.PROJECT_DIR }}/debug.keystore"
+            mkdir -p "${{ env.PROJECT_DIR }}/app"
+            cp "$KEYSTORE_SRC" "${{ env.PROJECT_DIR }}/app/debug.keystore"
+            
+            echo "Keystore copied to all locations successfully!"
+          else
+            echo "Error: debug.keystore was not found in the repository!"
+            exit 1
+          fi
+
       - name: Show Fixed SHA1 Key
         run: |
-          KEYSTORE_PATH="${{ env.PROJECT_DIR }}/app/debug.keystore"
+          KEYSTORE_PATH="${{ env.PROJECT_DIR }}/debug.keystore"
           if [ -f "$KEYSTORE_PATH" ]; then
             echo "=========================================="
             echo "       YOUR SHA-1 KEY FOR FIREBASE        "
             echo "=========================================="
             keytool -list -v -keystore "$KEYSTORE_PATH" -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
             echo "=========================================="
-          else
-            echo "Warning: app/debug.keystore not found!"
           fi
 
       - name: Setup Gradle Cache
