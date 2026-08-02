@@ -60,15 +60,17 @@ jobs:
 
       - name: Copy google-services.json to App Directory
         run: |
-          # Root එකේ google-services.json තිබේ නම් එය Project එකේ app folder එකට Copy කිරීම
-          JSON_SRC=$(find . -maxdepth 2 -name "google-services.json" | head -n 1)
-          
-          if [ -n "$JSON_SRC" ]; then
-            mkdir -p "${{ env.PROJECT_DIR }}/app"
-            cp "$JSON_SRC" "${{ env.PROJECT_DIR }}/app/google-services.json"
-            echo "google-services.json successfully copied to ${{ env.PROJECT_DIR }}/app/"
+          ROOT_JSON=$(find . -maxdepth 1 -name "google-services.json")
+          DEST_DIR="${{ env.PROJECT_DIR }}/app"
+
+          if [ -n "$ROOT_JSON" ]; then
+            mkdir -p "$DEST_DIR"
+            cp -f "$ROOT_JSON" "$DEST_DIR/google-services.json"
+            echo "Copied root google-services.json to $DEST_DIR"
+          elif [ -f "$DEST_DIR/google-services.json" ]; then
+            echo "Using existing google-services.json inside app directory."
           else
-            echo "Warning: google-services.json not found in root, using project's existing json."
+            echo "Warning: No google-services.json file found!"
           fi
 
       - name: Copy Keystore to All Required Locations
